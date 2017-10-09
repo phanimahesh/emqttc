@@ -91,6 +91,8 @@
 
 -type mqtt_pubopt() :: mqtt_qosopt() | {qos, mqtt_qos()} | {retain, boolean()}.
 
+-export_type([mqttc_opt/0, mqtt_qosopt/0, mqtt_pubopt/0]).
+
 -record(state, {parent              :: pid(),
                 name                :: atom(),
                 host = "localhost"  :: inet:ip_address() | string(),
