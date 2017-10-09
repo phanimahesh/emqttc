@@ -968,14 +968,14 @@ pending(Event, State = #state{pending_pubsub = Pending}) ->
 %% @end
 %%------------------------------------------------------------------------------
 received(?PUBLISH_PACKET(?QOS_0, Topic, undefined, Payload), State) ->
-    dispatch({publish, Topic, Payload}, State),
+    dispatch({publish, self(), Topic, Payload}, State),
     {ok, State};
 
 received(Packet = ?PUBLISH_PACKET(?QOS_1, Topic, _PacketId, Payload), State = #state{proto_state = ProtoState}) ->
 
     emqttc_protocol:received({'PUBLISH', Packet}, ProtoState),
 
-    dispatch({publish, Topic, Payload}, State),
+    dispatch({publish, self(), Topic, Payload}, State),
 
     {ok, State};
 
@@ -1001,7 +1001,7 @@ received(?PUBACK_PACKET(?PUBREL, PacketId), State = #state{proto_state = ProtoSt
     ProtoState2 = 
     case emqttc_protocol:received({'PUBREL', PacketId}, ProtoState) of
         {ok, ?PUBLISH_PACKET(?QOS_2, Topic, PacketId, Payload), ProtoState1} ->
-            dispatch({publish, Topic, Payload}, State), ProtoState1;
+            dispatch({publish, self(), Topic, Payload}, State), ProtoState1;
         {ok, ProtoState1} -> ProtoState1
     end,
     emqttc_protocol:pubcomp(PacketId, ProtoState2),
@@ -1061,7 +1061,7 @@ reply_timeout({Ack, ReqId}, State=#state{inflight_reqs = InflightReqs, logger = 
 %% @doc Dispatch Publish Message to subscribers.
 %% @end
 %%------------------------------------------------------------------------------
-dispatch(Publish = {publish, TopicName, _Payload}, #state{parent = Parent,
+dispatch(Publish = {publish, _Client, TopicName, _Payload}, #state{parent = Parent,
                                                           pubsub_map = PubSubMap}) ->
     Matched =
     lists:foldl(
